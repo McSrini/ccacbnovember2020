@@ -5,7 +5,9 @@
  */
 package ca.mcmaster.ccacbnovember2020.SubTree;
  
+import ca.mcmaster.ccacbnovember2020.Constants;
 import static ca.mcmaster.ccacbnovember2020.Constants.*; 
+import ca.mcmaster.ccacbnovember2020.Parameters;
 import static ca.mcmaster.ccacbnovember2020.Parameters.*;
 import ca.mcmaster.ccacbnovember2020.SubTree.controlCallbacks.LeafEnumerateNodecallback;
 import ca.mcmaster.ccacbnovember2020.SubTree.controlCallbacks.PruneNodecallback;
@@ -14,6 +16,7 @@ import ca.mcmaster.ccacbnovember2020.utils.CplexUtils;
 import ilog.concert.IloException;
 import ilog.concert.IloNumVar;
 import ilog.cplex.IloCplex;
+import ilog.cplex.IloCplex.Status;
 import static java.lang.System.exit;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,15 +35,18 @@ import org.apache.log4j.RollingFileAppender;
 public class SubTree {
     
     protected IloCplex cplex = null;
-    protected boolean isEnded = false;
+    protected  Map<VariableAndBound , Boolean> myRoot_VarFixings = new HashMap<VariableAndBound , Boolean>();
    
     protected static Logger logger;
+    
+    public boolean isCompletelySolved = false;
+    public double bestBoundAchieved= BILLION;
+    public double bestSolutionFound = BILLION;
+    public long numNodesProcessed = ZERO;
     
     //prune instruction
     public static Set<IloCplex.NodeId> pruneSet = new HashSet<IloCplex.NodeId>();
     
-    public  Map<VariableAndBound , Boolean> myRoot_VarFixings ;
-        
     static {
         logger=Logger.getLogger(SubTree.class);
         logger.setLevel(LOGGING_LEVEL);
@@ -60,25 +66,27 @@ public class SubTree {
     }
    
     //argument is bounds, and is uppperBound?
-    public SubTree ( Map<VariableAndBound , Boolean> varFixings) throws IloException {
+    public SubTree ( Map<Lite_VariableAndBound , Boolean> varFixings) throws IloException {
         
         cplex = new IloCplex();
         cplex.importModel(   PRESOLVED_MIP_FILENAME);
         CplexUtils.setCplexConfig (cplex) ;
-        
-        myRoot_VarFixings =varFixings;
-        
+                
         Map<String, IloNumVar> varMap = CplexUtils. getVariables (  cplex);
         
-        for (Map.Entry<VariableAndBound , Boolean> entry : varFixings.entrySet()){
-            VariableAndBound vb = entry.getKey();
-            IloNumVar var= varMap.get (vb.getVar().getName());
-            double newBound= vb.getBound();
+        for (Map.Entry<Lite_VariableAndBound , Boolean> entry : varFixings.entrySet()){
+            Lite_VariableAndBound vb = entry.getKey();
+            IloNumVar var= varMap.get (vb.varName);
+            double newBound= vb.bound;
             if (entry.getValue()){
                 CplexUtils.updateVariableBounds( var,   newBound, true  )   ;
             }else {
                 CplexUtils.updateVariableBounds( var,   newBound, false  )   ;
             }
+            
+            //logger.debug ("var fixing is " + var + " bnd "+ newBound + " " +  entry.getValue()) ;
+            
+            myRoot_VarFixings.put (new VariableAndBound (var, newBound) , entry.getValue()) ;
         }
     }
     
@@ -91,17 +99,19 @@ public class SubTree {
         
         cplex.solve ();
         
+        
+        
         System.out.println( " Start getTreeStructure **************************\n\n ");
         
         TreeStructureNode root= getTreeStructure ( );
         
-        List< IloCplex.NodeId > pruneList = new ArrayList< IloCplex.NodeId > ();
+        //List< IloCplex.NodeId > pruneList = new ArrayList< IloCplex.NodeId > ();
          
         //populate prune list 
         
         System.out.println( " Start prune ************************** \n\n");
         
-        this.prune(pruneList);
+        //this.prune(pruneList);
         
         System.out.println( " Start getTreeStructure after prune **************************\n\n ");
          
@@ -109,23 +119,42 @@ public class SubTree {
         
     }
     
-     
+    public void prune (Set< IloCplex.NodeId >  migratedLeafs ) throws IloException{
+        cplex.setParam( IloCplex.Param.Threads, ONE);
+        cplex.clearCallbacks();
+         
+        cplex.use ( new PruneNodecallback  ( )) ;
+        cplex.use ( new SolveBranchHandler ( ));
+        
+        pruneSet.addAll(migratedLeafs );
+        cplex.setParam( IloCplex.Param.TimeLimit,  BILLION);
+        cplex.solve();
+        pruneSet.clear();
+        
+    }
         
     //sequential solve
-    public void solve ( ) throws IloException{
+    public void solve ( double cutoff, long time_used_up_for_pruning_millisec ) throws IloException{
         
         cplex.setParam( IloCplex.Param.Threads, MAX_CPLEX_THREADS);
         cplex.clearCallbacks();
         cplex.use ( new SolveBranchHandler ( ) );
         cplex.setParam( IloCplex.Param.TimeLimit,  SOLUTION_CYCLE_TIME_SECONDS);
+        logger.info (" MIP emphasis is " + Parameters.MIP_EMPHASIS_TO_USE) ;
         
         for (int cycles = ONE;  ; cycles ++){    
             
-            cplex.solve();              
-           
+            cplex.solve();        
+            bestBoundAchieved= cplex.getBestObjValue();
+            if (cplex.getStatus().equals( Status.Feasible ) || cplex.getStatus().equals( Status.Optimal )) 
+                bestSolutionFound =cplex.getObjValue();
+            this.numNodesProcessed = cplex.getNnodes64();
+                           
             log_statistics(  cycles );
             
-            if (isCompletelySolved()) {                
+            if (isCompletelySolved(cutoff)) {   
+                
+               
                 end();
                 break;
             }
@@ -138,6 +167,7 @@ public class SubTree {
     //Needed for implementing LCA and CB algorithms
     public TreeStructureNode getTreeStructure () throws IloException{
         cplex.setParam( IloCplex.Param.Threads, ONE);
+        cplex.setParam( IloCplex.Param.TimeLimit,  BILLION);
         cplex.clearCallbacks();
         LeafEnumerateNodecallback leafEnumCallback = new LeafEnumerateNodecallback () ;
         cplex.use (leafEnumCallback );
@@ -149,18 +179,37 @@ public class SubTree {
     }
     
     public void end () {
-        if (!isEnded){
+        if (!isCompletelySolved){
             cplex.end();
-            isEnded= true;
+            isCompletelySolved= true;
         }        
     }
     
-    public boolean isCompletelySolved() throws IloException {
-        return cplex.getStatus().equals( IloCplex.Status.Infeasible) || 
+    protected boolean isCompletelySolved(double upperCutoff) throws IloException {
+       
+        boolean condition1 =  cplex.getStatus().equals( IloCplex.Status.Infeasible) || 
                cplex.getStatus().equals( IloCplex.Status.Optimal);
+        boolean condition2 = false;
+        
+        if (  !condition1 && upperCutoff < BILLION){
+            //|bestbound-upperCutoff|/(1e-10+|upperCutoff|) 
+            double dist_mip_gap = Math.abs( cplex.getBestObjValue() - upperCutoff);
+            
+            
+            
+            double denominator =  DOUBLE_ONE/ (BILLION) ;
+            denominator = denominator /TEN;
+            denominator = denominator +  Math.abs(upperCutoff);
+            dist_mip_gap = dist_mip_gap /denominator;
+            condition2 = dist_mip_gap < Constants.EPSILON;
+        }
+        
+         
+        
+        return condition2 || condition1;
     }
     
-    public void log_statistics (  int hour) throws IloException {
+    protected void log_statistics (  int hour) throws IloException {
         double bestSoln = BILLION;
         double relativeMipGap = BILLION;
         IloCplex.Status cplexStatus  = cplex.getStatus();
@@ -235,18 +284,7 @@ public class SubTree {
     }
     
       
-    protected void prune (List< IloCplex.NodeId >  migratedLeafs ) throws IloException{
-        cplex.setParam( IloCplex.Param.Threads, ONE);
-        cplex.clearCallbacks();
-         
-        cplex.use ( new PruneNodecallback  ( )) ;
-        cplex.use ( new SolveBranchHandler ( ));
-        
-        pruneSet.addAll(migratedLeafs );
-        cplex.solve();
-        pruneSet.clear();
-        
-    }
+
     
 
     

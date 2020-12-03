@@ -27,10 +27,21 @@ public class LeafEnumerateNodecallback extends IloCplex.NodeCallback {
         if (LEAFCOUNT>ZERO) {
             for (long leafNum = ZERO; leafNum < LEAFCOUNT; leafNum ++){
                 TreeStructureNode treeNode = new TreeStructureNode ();
-                treeNode.nodeID=getNodeId(leafNum) ;
-                treeNode.nodeAttachment =(NodeAttachment)getNodeData(  leafNum );
-                leafNodeAttahments.add (treeNode );
-                treeNode.lpRelaxObjective = getObjValue (leafNum) ;
+                
+                boolean hasInformation = false;
+                try {
+                    treeNode.nodeID=getNodeId(leafNum) ;
+                    treeNode.nodeAttachment = null;
+                    treeNode.nodeAttachment =(NodeAttachment)getNodeData(  leafNum );
+                    treeNode.lpRelaxObjective = getObjValue (leafNum) ;
+                    
+                    if (null!=  treeNode.nodeAttachment) hasInformation = true; 
+                    
+                }catch (Exception ex){
+                    //ignore this leaf                    
+                }
+                                
+                if (hasInformation) leafNodeAttahments.add (treeNode );
             }
         }
         abort();

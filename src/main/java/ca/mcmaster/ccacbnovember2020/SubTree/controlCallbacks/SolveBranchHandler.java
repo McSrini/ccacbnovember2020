@@ -35,6 +35,7 @@ public class SolveBranchHandler extends IloCplex.BranchCallback {
             
             if (SubTree.pruneSet .size()> ZERO  && SubTree.pruneSet.remove( getNodeId())){
                 //pruneSet is always empty in multi threaded solve mode
+                //System.out.println("pruning "+ getNodeId()) ;
                 prune ();                      
 
             }else {
@@ -52,7 +53,13 @@ public class SolveBranchHandler extends IloCplex.BranchCallback {
                     setNodeData (attachment );
                 } 
 
-                NodeAttachment thisNodesAttachment = (NodeAttachment) getNodeData () ;
+                NodeAttachment thisNodesAttachment = null;
+                try {
+                    thisNodesAttachment  = (NodeAttachment) getNodeData () ;
+                }        catch (Exception ex){
+                    //stays null
+                }
+                       
 
                 //now allow  both kids to spawn
                 for (int childNum = ZERO ;childNum<getNbranches();  childNum++) {   
@@ -62,18 +69,26 @@ public class SolveBranchHandler extends IloCplex.BranchCallback {
                     IloCplex.BranchDirection dir =  dirs[childNum][ZERO];     
 
                     boolean isDownBranch = dir.equals(   IloCplex.BranchDirection.Down);
+                    
+                    IloCplex.NodeId  kid = null;
+                    if (null==thisNodesAttachment){
+                        //default
+                        kid = makeBranch(var,bound, dir ,getObjValue());
+                    }else {
+                        if (isDownBranch){
+                            VariableAndBound vb = new VariableAndBound (var, bound) ;
+                            thisNodesAttachment.down_Branch_Condition= vb;
+                        }
 
-                    if (isDownBranch){
-                        VariableAndBound vb = new VariableAndBound (var, bound) ;
-                        thisNodesAttachment.down_Branch_Condition= vb;
+                        NodeAttachment attach = new NodeAttachment (thisNodesAttachment, null, isDownBranch);
+
+                        //create the kid
+                        kid = makeBranch(var,bound, dir ,getObjValue(), attach); 
                     }
 
-                    NodeAttachment attach = new NodeAttachment (thisNodesAttachment, null, isDownBranch);
+                    
 
-                    //create the kid
-                    IloCplex.NodeId  id = makeBranch(var,bound, dir ,getObjValue(), attach);
-
-                    //System.out.println("Node " + getNodeId() + " created " + id + " isdown " + isDownBranch + " var " + var.getName()) ;
+                    //System.out.println("Node " + getNodeId() + " created " + kid + " isdown " + isDownBranch + " var " + var.getName()) ;
 
                 }  
                 

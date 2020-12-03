@@ -4,10 +4,9 @@
  * and open the template in the editor.
  */
 package ca.mcmaster.ccacbnovember2020.utils;
-
-import static ca.mcmaster.ccacbnovember2020.Constants.ONE;
-import static ca.mcmaster.ccacbnovember2020.Parameters.HUGE_WORKMEM;
-import static ca.mcmaster.ccacbnovember2020.Parameters.USE_BARRIER_FOR_SOLVING_LP;
+ 
+import static ca.mcmaster.ccacbnovember2020.Constants.*;
+import static ca.mcmaster.ccacbnovember2020.Parameters.*; 
 import ilog.concert.IloException;
 import ilog.concert.IloLPMatrix;
 import ilog.concert.IloNumVar;
@@ -24,9 +23,10 @@ import java.util.Set;
 public class CplexUtils {
     
     public static void setCplexConfig (IloCplex cplex) throws IloException {
-        //cplex.setParam( IloCplex.Param.MIP.Strategy.File,  );
+        cplex.setParam( IloCplex.Param.MIP.Strategy.File,FILE_STRATEGY_DISK_COMPRESSED  );
         cplex.setParam( IloCplex.Param.MIP.Strategy.HeuristicFreq , -ONE);
-        cplex.setParam( IloCplex.Param.WorkMem, HUGE_WORKMEM) ;
+        //cplex.setParam( IloCplex.Param.WorkMem, HUGE_WORKMEM) ;
+        cplex.setParam(IloCplex.Param.Emphasis.MIP, MIP_EMPHASIS_TO_USE) ; 
         if (USE_BARRIER_FOR_SOLVING_LP) {
             cplex.setParam( IloCplex.Param.NodeAlgorithm  ,  IloCplex.Algorithm.Barrier);
             cplex.setParam( IloCplex.Param.RootAlgorithm  ,  IloCplex.Algorithm.Barrier);

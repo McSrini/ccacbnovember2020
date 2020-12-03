@@ -14,6 +14,6 @@ import java.util.Map;
  * @author tamvadss
  */
 public class RampupAttachment {
-    public Map<VariableAndBound , Boolean> varFixings = new HashMap<VariableAndBound , Boolean>();
+    public HashMap<VariableAndBound , Boolean> varFixings = new HashMap<VariableAndBound , Boolean>();
     
 }

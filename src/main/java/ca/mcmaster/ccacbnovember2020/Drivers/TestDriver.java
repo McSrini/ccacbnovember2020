@@ -5,7 +5,9 @@
  */
 package ca.mcmaster.ccacbnovember2020.Drivers;
 
+import static ca.mcmaster.ccacbnovember2020.Constants.ZERO;
 import static ca.mcmaster.ccacbnovember2020.Parameters.PRESOLVED_MIP_FILENAME;
+import ca.mcmaster.ccacbnovember2020.SubTree.Lite_VariableAndBound;
 import ca.mcmaster.ccacbnovember2020.SubTree.SubTree;
 import ca.mcmaster.ccacbnovember2020.SubTree.VariableAndBound;
 import ca.mcmaster.ccacbnovember2020.SubTree.lca.LCA_Node;
@@ -28,25 +30,27 @@ public class TestDriver {
         //SubTree subtree = new SubTree (new HashMap<VariableAndBound , Boolean>());
         //subtree.test_Solve();
         
-        RampUp ramp = new RampUp();
-        for (LCA_Node lca : ramp.doRampUp()) {
-            lca.print();
-        }
+        //RampUp ramp = new RampUp();
+        //for (LCA_Node lca : ramp.doRampUp()) {
+            //lca.print();
+        //}
         
-        /*
-        Map<VariableAndBound , Boolean> init =  new HashMap<VariableAndBound , Boolean>() ;
+        
+        Map<Lite_VariableAndBound , Boolean> init =  new HashMap<Lite_VariableAndBound , Boolean>() ;
         IloCplex cplex = new IloCplex();
         cplex.importModel(   PRESOLVED_MIP_FILENAME);
-        Map<String, IloNumVar>  vars =  CplexUtils.getVariables(cplex);
-        VariableAndBound vb1 = new VariableAndBound (vars.get("x453"), 0);
-        VariableAndBound vb2 = new VariableAndBound (vars.get("x454"), 1);
+        
+        //Map<String, IloNumVar>  vars =  CplexUtils.getVariables(cplex);
+        
+        Lite_VariableAndBound vb1 = new Lite_VariableAndBound (("x453"), 0);
+        Lite_VariableAndBound vb2 = new Lite_VariableAndBound (("x454"), 1);
          
         init.put (vb1, true) ;
         init.put (vb2, false);
         
-        SubTree_LCA subtreeLCA = new SubTree_LCA (init);
+        SubTree_LCA subtreeLCA = new SubTree_LCA ( init, 0 );
         subtreeLCA.test_Solve();
-        */
+        
         
     }
     

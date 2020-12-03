@@ -6,6 +6,7 @@
 package ca.mcmaster.ccacbnovember2020.Drivers;
 
 import static ca.mcmaster.ccacbnovember2020.Constants.*;
+import ca.mcmaster.ccacbnovember2020.SubTree.Lite_VariableAndBound;
 import ca.mcmaster.ccacbnovember2020.SubTree.SubTree;
 import ca.mcmaster.ccacbnovember2020.SubTree.VariableAndBound;
 import ilog.cplex.IloCplex;
@@ -44,10 +45,10 @@ public class SequentialDriver {
     
     public static void main(String[] args) throws Exception {
         
-        SubTree subtree = new SubTree (new HashMap<VariableAndBound , Boolean>());
+        SubTree subtree = new SubTree (new HashMap<Lite_VariableAndBound , Boolean>());
         
         logger.info ("seqeuntial solver starting") ;
-        subtree.solve ( );
+        subtree.solve (BILLION , ZERO);
         
        
         

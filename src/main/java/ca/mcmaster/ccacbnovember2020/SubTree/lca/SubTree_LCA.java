@@ -10,11 +10,13 @@ import ca.mcmaster.ccacbnovember2020.SubTree.TreeStructureNode;
 import ca.mcmaster.ccacbnovember2020.SubTree.VariableAndBound;
 import static ca.mcmaster.ccacbnovember2020.Constants.*;
 import static ca.mcmaster.ccacbnovember2020.Parameters.*;
+import ca.mcmaster.ccacbnovember2020.SubTree.Lite_VariableAndBound;
 import ca.mcmaster.ccacbnovember2020.SubTree.controlCallbacks.SolveBranchHandler;
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,29 +31,45 @@ import java.util.TreeMap;
  */
 public class SubTree_LCA extends SubTree {
     
-    private int numCyclesAlready = ZERO;
+    public int iterationsCompleted ;
+     
     public TreeStructureNode root;
     
     public  Map < TreeStructureNode ,  LCA_Node  > collectedPerfectLCANodes = 
             new HashMap < TreeStructureNode ,  LCA_Node  >();
     
-    public SubTree_LCA ( Map<VariableAndBound , Boolean> varFixings) throws IloException {
+    public SubTree_LCA ( Map<Lite_VariableAndBound , Boolean> varFixings, int iterationsCompleted ) throws IloException {
         super (varFixings) ;
+        this. iterationsCompleted  =   iterationsCompleted ;
     }
      
     @Override
-    public void solve () throws IloException{
+    public void solve (double cutoff, long time_used_up_for_pruning_millisec) throws IloException{
+        
+        long solveTimeRemaining_seconds = THOUSAND*SOLUTION_CYCLE_TIME_SECONDS-  time_used_up_for_pruning_millisec ;
+        solveTimeRemaining_seconds = solveTimeRemaining_seconds /THOUSAND;
+        
+        if (solveTimeRemaining_seconds <= SIXTY){
+            //set to 1 minute
+            solveTimeRemaining_seconds = SIXTY;
+        }
          
         cplex.setParam( IloCplex.Param.Threads, MAX_CPLEX_THREADS);
         cplex.clearCallbacks();
         cplex.use ( new SolveBranchHandler ( ) );
-        cplex.setParam( IloCplex.Param.TimeLimit,  SOLUTION_CYCLE_TIME_SECONDS);
+        cplex.setParam( IloCplex.Param.TimeLimit,  solveTimeRemaining_seconds );
+        if (cutoff < BILLION) cplex.setParam(IloCplex.Param.MIP.Tolerances.UpperCutoff, cutoff);
+         
         
         cplex.solve();              
+        bestBoundAchieved= cplex.getBestObjValue();
+        if (cplex.getStatus().equals( IloCplex.Status.Feasible ) || cplex.getStatus().equals( IloCplex.Status.Optimal )) 
+                bestSolutionFound =cplex.getObjValue();
+        this.numNodesProcessed = cplex.getNnodes64();
           
-        log_statistics(  ++numCyclesAlready );
+        log_statistics(  ++ iterationsCompleted );
             
-        if (isCompletelySolved()) {
+        if (isCompletelySolved(cutoff)) {
             end();
             root = null;
         } else {
@@ -65,9 +83,13 @@ public class SubTree_LCA extends SubTree {
         cplex.setParam( IloCplex.Param.Threads, MAX_CPLEX_THREADS);
         cplex.clearCallbacks();
         cplex.use ( new SolveBranchHandler ( ) );
-        cplex.setParam( IloCplex.Param.TimeLimit,  30);
+        cplex.setParam( IloCplex.Param.TimeLimit,  90);
         
         cplex.solve();
+        
+        
+        
+        
         root = getTreeStructure ( );
         
         System.out.println("printing leafs " );
@@ -79,8 +101,10 @@ public class SubTree_LCA extends SubTree {
         getPerfectLCANodes();
         
         for (LCA_Node lca : collectedPerfectLCANodes.values()){
-            lca.print();
+            lca.getLiteVersion().printMe();
         }
+        
+        /*
         
         //prune some leafs
         //get tree sturcture again
@@ -90,15 +114,21 @@ public class SubTree_LCA extends SubTree {
         LCA_Node lca_node = lcaNodes.get(ZERO);
         
         List< IloCplex.NodeId >  migratedLeafs  = new ArrayList< IloCplex.NodeId >  () ;
-        for (TreeStructureNode leaf : lca_node.leafSet){
-            migratedLeafs.add (leaf.nodeID);
+        for (IloCplex.NodeId leafNodeID : lca_node.leafSet){
+            migratedLeafs.add (leafNodeID);
         }
         
+        migratedLeafs.remove(migratedLeafs.size()-ONE );
+        migratedLeafs.remove(migratedLeafs.size()-ONE );
+        System.out.println("\n\n pruning ...");
         for (IloCplex.NodeId nd:  migratedLeafs ){
             System.out.println("prune target " + nd) ;
         }
+        Set< IloCplex.NodeId >  migratedLeafsSet  = new HashSet< IloCplex.NodeId >  () ;
+        migratedLeafsSet.addAll( migratedLeafs);
+        this.prune(migratedLeafsSet );
         
-        this.prune(migratedLeafs );
+        
         
         root = getTreeStructure ( );
         System.out.println("printing leafs after prune " );
@@ -107,31 +137,35 @@ public class SubTree_LCA extends SubTree {
             System.out.println(tsNode.nodeID + ", ");
         }
         
-        System.out.println("Solving for few more seconds ") ;
+        System.out.println("\n\n Solving for few more seconds ") ;
         
         cplex.setParam( IloCplex.Param.Threads, MAX_CPLEX_THREADS);
         cplex.clearCallbacks();
         cplex.use ( new SolveBranchHandler ( ) );
-        cplex.setParam( IloCplex.Param.TimeLimit,  3);
+        cplex.setParam( IloCplex.Param.TimeLimit,  5);
         
         cplex.solve();
         
         root = getTreeStructure ( );
-        System.out.println("printing leafs after second solve " );
-        for (TreeStructureNode tsNode : root.leafSet){
-            //
-            System.out.println(tsNode.nodeID + ", ");
+        System.out.println("\n\nprinting leafs after second solve " );
+        if (null!=root){
+            for (TreeStructureNode tsNode : root.leafSet){
+                //
+                System.out.println(tsNode.nodeID + ", ");
+            }
         }
-        
+                
         getPerfectLCANodes();
         
         for (LCA_Node lca : collectedPerfectLCANodes.values()){
-            lca.print();
+            lca.getLiteVersion().printMe();
         }
+        
+        this.collectedPerfectLCANodes.clear();
         
         return;
         
-        
+        */
     }
     
     public void  getPerfectLCANodes (){
@@ -149,7 +183,7 @@ public class SubTree_LCA extends SubTree {
                 while (null!= parent){
                     
                     if (!isLeaf){
-                        int nonLeafRefcount = current.downBranch_nonLeaf_refcount + current.upBranch_NonLeaf_refcount;
+                        long nonLeafRefcount = current.downBranch_nonLeaf_refcount + current.upBranch_NonLeaf_refcount;
                         if (current.nodeAttachment.am_I_The_Down_Branch_Child){
                             parent.downBranch_nonLeaf_refcount = ONE + nonLeafRefcount;
                         }else {
@@ -158,20 +192,20 @@ public class SubTree_LCA extends SubTree {
                         
                         //add to leaf set on both sides
                         if (current.nodeAttachment.am_I_The_Down_Branch_Child){
-                            parent.downBranch_Leaf_set.addAll( current.downBranch_Leaf_set );
-                            parent.downBranch_Leaf_set.addAll( current.upBranch_Leaf_set );
+                            parent.downBranch_Leaf_refcount =current.downBranch_Leaf_refcount +  current.upBranch_Leaf_refcount;
+                                    
                         }else {
-                            parent.upBranch_Leaf_set.addAll ( current.downBranch_Leaf_set);
-                            parent.upBranch_Leaf_set.addAll ( current.upBranch_Leaf_set);
+                            parent.upBranch_Leaf_refcount =  current.downBranch_Leaf_refcount +  current.upBranch_Leaf_refcount;
+                          
                         }
                         
                     } else {
                         
                         //add to leaf set on both sides
                         if (current.nodeAttachment.am_I_The_Down_Branch_Child){
-                            parent.downBranch_Leaf_set.add( leaf);
+                            parent.downBranch_Leaf_refcount = ONE;
                         }else {
-                            parent.upBranch_Leaf_set.add (leaf);
+                            parent.upBranch_Leaf_refcount = ONE;
                         }
                         
                     }
@@ -190,22 +224,64 @@ public class SubTree_LCA extends SubTree {
                 }//end while
                 
             }//end for
-        }        
+        }   
         
+        //for all the collected perfect LCA nodes,populate the leafset and var fixings
+        for (Map.Entry<TreeStructureNode, LCA_Node> entry:  collectedPerfectLCANodes.entrySet()){
+            entry.getValue().leafSet = getLeafSetForLCANode (entry.getKey() );
+            entry.getValue().varFixings = getVarFixings (entry.getKey() ) ;
+        }
+        
+        //clear all the refcounts
+        if (null!=root) clearSubtreeRefcounts (root);
+        
+    }
+    
+    private void clearSubtreeRefcounts(TreeStructureNode subtreeRoot){
+        if (subtreeRoot.downBranchChild!= null || subtreeRoot.upBranchChild!= null){
+            subtreeRoot.downBranch_Leaf_refcount = ZERO;
+            subtreeRoot.downBranch_nonLeaf_refcount = ZERO;
+            subtreeRoot.upBranch_Leaf_refcount = ZERO;
+            subtreeRoot.upBranch_NonLeaf_refcount= ZERO;
+            
+            if (subtreeRoot.downBranchChild!= null){
+                clearSubtreeRefcounts(subtreeRoot.downBranchChild);
+            }
+            if (subtreeRoot.upBranchChild!= null){
+                clearSubtreeRefcounts (subtreeRoot.upBranchChild) ; 
+            }
+        }        
+
+    }
+    
+    private Set < IloCplex.NodeId> getLeafSetForLCANode (TreeStructureNode lcaNode){
+        Set < IloCplex.NodeId> result = new HashSet < IloCplex.NodeId>();
+        if (lcaNode.upBranchChild==null && lcaNode.downBranchChild ==null){
+            //collect node ID of leaf
+            result.add (lcaNode.nodeID ) ;            
+        }else {
+            if (null!=lcaNode.downBranchChild) result.addAll( getLeafSetForLCANode(lcaNode.downBranchChild));
+            if (null!=lcaNode.upBranchChild) result.addAll(getLeafSetForLCANode(lcaNode.upBranchChild) );
+        }
+        return result;        
     }
     
     private void  collectIfPerfect (TreeStructureNode nonLeafNode){
          
-        final int LEAF_COUNT= nonLeafNode.downBranch_Leaf_set.size() + nonLeafNode.upBranch_Leaf_set.size();
-        final int NONLEAF_COUNT =ONE + nonLeafNode.downBranch_nonLeaf_refcount + nonLeafNode.upBranch_NonLeaf_refcount;
+        final long LEAF_COUNT= nonLeafNode.downBranch_Leaf_refcount + nonLeafNode.upBranch_Leaf_refcount;
+        final long NONLEAF_COUNT =ONE + nonLeafNode.downBranch_nonLeaf_refcount + nonLeafNode.upBranch_NonLeaf_refcount;
         if (NONLEAF_COUNT + ONE == LEAF_COUNT){
+            
+            
             
             //perfect, collect it and remove child LCA nodes
             LCA_Node perfectLCA = new LCA_Node();
             perfectLCA.lpRelax= nonLeafNode.lpRelaxObjective;
-            perfectLCA.leafSet .addAll( nonLeafNode.downBranch_Leaf_set);
-            perfectLCA.leafSet .addAll( nonLeafNode.upBranch_Leaf_set);
-            perfectLCA .varFixings=getVarFixings (nonLeafNode) ;
+            //perfectLCA.leafSet .addAll( nonLeafNode.downBranch_Leaf_set);
+            //perfectLCA.leafSet .addAll( nonLeafNode.upBranch_Leaf_set);
+            //perfectLCA .varFixings=getVarFixings (nonLeafNode) ;
+            
+            //System.out.println("perfect LCA "+ perfectLCA.myID + " N and L "+  NONLEAF_COUNT + ", " +LEAF_COUNT );
             
             this.collectedPerfectLCANodes.put (  nonLeafNode , perfectLCA) ;
             
@@ -217,8 +293,8 @@ public class SubTree_LCA extends SubTree {
          
     }
     
-    private  Map<VariableAndBound , Boolean> getVarFixings (TreeStructureNode nonLeafNode) {
-        Map<VariableAndBound , Boolean> result = new HashMap<VariableAndBound , Boolean>();
+    private  HashMap<VariableAndBound , Boolean> getVarFixings (TreeStructureNode nonLeafNode) {
+        HashMap<VariableAndBound , Boolean> result = new HashMap<VariableAndBound , Boolean>();
         
         TreeStructureNode current = nonLeafNode;
         TreeStructureNode parent = nonLeafNode.parent;

@@ -17,7 +17,7 @@ import java.util.Set;
 public class TreeStructureNode {
     
     //node id available only for each leaf
-    public  IloCplex.NodeId  nodeID;
+    public  IloCplex.NodeId  nodeID =null;
     
     public TreeStructureNode parent = null;
     public TreeStructureNode downBranchChild = null;
@@ -28,9 +28,9 @@ public class TreeStructureNode {
     //leaf set available for root
     public Set < TreeStructureNode> leafSet =null;
     
-    public int downBranch_nonLeaf_refcount = ZERO;
-    public Set<TreeStructureNode> downBranch_Leaf_set = new HashSet<TreeStructureNode>() ;
-    public Set<TreeStructureNode> upBranch_Leaf_set = new HashSet<TreeStructureNode>() ;
-    public int upBranch_NonLeaf_refcount = ZERO;
+    public long downBranch_nonLeaf_refcount = ZERO;
+    public long downBranch_Leaf_refcount = ZERO;
+    public long upBranch_Leaf_refcount = ZERO;
+    public long upBranch_NonLeaf_refcount = ZERO;
     
 }
