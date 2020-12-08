@@ -186,7 +186,7 @@ public class SubTree {
         }        
     }
     
-    protected boolean isCompletelySolved(double upperCutoff) throws IloException {  
+    protected boolean isCompletelySolved(double upperCutoff) throws IloException {   
        
         boolean condition1 =  cplex.getStatus().equals( IloCplex.Status.Infeasible) || 
                cplex.getStatus().equals( IloCplex.Status.Optimal);
@@ -202,10 +202,12 @@ public class SubTree {
             denominator = denominator /TEN;
             denominator = denominator +  Math.abs(upperCutoff);
             dist_mip_gap = dist_mip_gap /denominator;
+            logger.info ( " dist_mip_gap is " + dist_mip_gap );
             condition2 = dist_mip_gap < Constants.EPSILON;
         }
         
-         
+        logger.info ( " condition1 " + condition1) ; 
+        logger.info ( " condition2 " + condition2) ; 
         
         return condition2 || condition1;
     }
