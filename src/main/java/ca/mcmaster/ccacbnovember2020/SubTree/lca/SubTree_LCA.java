@@ -9,6 +9,7 @@ import ca.mcmaster.ccacbnovember2020.SubTree.SubTree;
 import ca.mcmaster.ccacbnovember2020.SubTree.TreeStructureNode;
 import ca.mcmaster.ccacbnovember2020.SubTree.VariableAndBound;
 import static ca.mcmaster.ccacbnovember2020.Constants.*;
+import ca.mcmaster.ccacbnovember2020.Parameters;
 import static ca.mcmaster.ccacbnovember2020.Parameters.*;
 import ca.mcmaster.ccacbnovember2020.SubTree.Lite_VariableAndBound;
 import ca.mcmaster.ccacbnovember2020.SubTree.controlCallbacks.SolveBranchHandler;
@@ -45,6 +46,9 @@ public class SubTree_LCA extends SubTree {
      
     @Override
     public void solve (double cutoff, long time_used_up_for_pruning_millisec) throws IloException{
+        
+        logger.info (" MIP emphasis is " + Parameters.MIP_EMPHASIS_TO_USE + " "+ USE_BARRIER_FOR_SOLVING_LP+
+                 " epsilon " + EPSILON) ;
         
         long solveTimeRemaining_seconds = THOUSAND*SOLUTION_CYCLE_TIME_SECONDS-  time_used_up_for_pruning_millisec ;
         solveTimeRemaining_seconds = solveTimeRemaining_seconds /THOUSAND;

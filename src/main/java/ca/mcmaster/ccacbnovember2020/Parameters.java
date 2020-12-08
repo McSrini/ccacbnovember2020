@@ -35,7 +35,8 @@ public class Parameters {
     
         
     public static List<String> mipsWithBarrier = new ArrayList<String> (
-        Arrays.asList( "roi5alpha.pre.sav","seymour-disj-10.pre.sav", "supportcase3.pre", "huahum.pre.sav"));
+        Arrays.asList( "roi5alpha.pre.sav","splice1k1.pre.sav", "sing326.pre.sav", "sing44.pre.sav", 
+                "supportcase3.pre", "huahum.pre.sav"));
     public static boolean USE_BARRIER_FOR_SOLVING_LP =  mipsWithBarrier.contains(PRESOLVED_MIP_FILENAME);
 
    

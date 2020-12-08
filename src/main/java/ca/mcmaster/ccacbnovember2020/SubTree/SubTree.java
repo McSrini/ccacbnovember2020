@@ -140,7 +140,8 @@ public class SubTree {
         cplex.clearCallbacks();
         cplex.use ( new SolveBranchHandler ( ) );
         cplex.setParam( IloCplex.Param.TimeLimit,  SOLUTION_CYCLE_TIME_SECONDS);
-        logger.info (" MIP emphasis is " + Parameters.MIP_EMPHASIS_TO_USE) ;
+        logger.info (" MIP emphasis is " + Parameters.MIP_EMPHASIS_TO_USE + " "+ USE_BARRIER_FOR_SOLVING_LP+
+                 " epsilon " + EPSILON) ;
         
         for (int cycles = ONE;  ; cycles ++){    
             
@@ -185,7 +186,7 @@ public class SubTree {
         }        
     }
     
-    protected boolean isCompletelySolved(double upperCutoff) throws IloException {
+    protected boolean isCompletelySolved(double upperCutoff) throws IloException {  
        
         boolean condition1 =  cplex.getStatus().equals( IloCplex.Status.Infeasible) || 
                cplex.getStatus().equals( IloCplex.Status.Optimal);
@@ -201,7 +202,7 @@ public class SubTree {
             denominator = denominator /TEN;
             denominator = denominator +  Math.abs(upperCutoff);
             dist_mip_gap = dist_mip_gap /denominator;
-            condition2 = dist_mip_gap < Constants.EPSILON;
+            condition2 = dist_mip_gap <= Constants.EPSILON;
         }
         
          

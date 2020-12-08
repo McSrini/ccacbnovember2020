@@ -250,13 +250,14 @@ public class RequestHandler implements Runnable{
         return result;
     }
     
-    private boolean isWithinDistMipGap (double bound, double upperCutoff) {
+    private boolean isWithinDistMipGap (double bound, double upperCutoff) {        
         double dist_mip_gap = Math.abs(  bound - upperCutoff);
         double denominator =  DOUBLE_ONE/ (BILLION) ;
         denominator = denominator /TEN;
         denominator = denominator +  Math.abs(upperCutoff);
         dist_mip_gap = dist_mip_gap /denominator;
-        return dist_mip_gap < Constants.EPSILON;
+        logger.info ("dist_mip_gap is " + dist_mip_gap + " " + Constants.EPSILON) ;
+        return dist_mip_gap <= Constants.EPSILON;
     }
         
 }
