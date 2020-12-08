@@ -202,7 +202,7 @@ public class SubTree {
             denominator = denominator /TEN;
             denominator = denominator +  Math.abs(upperCutoff);
             dist_mip_gap = dist_mip_gap /denominator;
-            condition2 = dist_mip_gap <= Constants.EPSILON;
+            condition2 = dist_mip_gap < Constants.EPSILON;
         }
         
          

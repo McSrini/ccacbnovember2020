@@ -257,7 +257,7 @@ public class RequestHandler implements Runnable{
         denominator = denominator +  Math.abs(upperCutoff);
         dist_mip_gap = dist_mip_gap /denominator;
         logger.info ("dist_mip_gap is " + dist_mip_gap + " " + Constants.EPSILON) ;
-        return dist_mip_gap <= Constants.EPSILON;
+        return dist_mip_gap < Constants.EPSILON;
     }
         
 }
