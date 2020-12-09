@@ -77,7 +77,8 @@ public class RequestHandler implements Runnable{
                 
                 //read the next request from the same client
                 requestFromClient =   (ClientRequestObject) inputStream.readObject() ;
-                logger.debug (" request recieved from client " + requestFromClient ) ;           
+                logger.info (" request recieved from client " + requestFromClient.clientName + " is idle? " + 
+                       requestFromClient.isIdle ) ;           
             }
                         
             

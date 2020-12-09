@@ -24,6 +24,7 @@ public class Parameters {
     public static final int FILE_STRATEGY_DISK_COMPRESSED= 3;    
     public static boolean DISABLE_HEURISTICS= true;
     public static final int HUGE_WORKMEM =(64)*THOUSAND ;
+    public static final boolean USE_HIGH_WORKMEM = false;
     public static final int MIP_EMPHASIS_TO_USE = 2;
     //public static final long RANDOM_SEED = 1;
     
@@ -35,8 +36,7 @@ public class Parameters {
     
         
     public static List<String> mipsWithBarrier = new ArrayList<String> (
-        Arrays.asList( "roi5alpha.pre.sav","splice1k1.pre.sav", "sing326.pre.sav", "sing44.pre.sav", 
-                "supportcase3.pre", "huahum.pre.sav"));
+        Arrays.asList(          "supportcase3.pre", "huahum.pre.sav"));
     public static boolean USE_BARRIER_FOR_SOLVING_LP =  mipsWithBarrier.contains(PRESOLVED_MIP_FILENAME);
 
    
