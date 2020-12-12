@@ -193,15 +193,24 @@ public class SubTree {
                cplex.getStatus().equals( IloCplex.Status.Optimal);
         boolean condition2 = false;
         
-        if (  !condition1 && upperCutoff < BILLION){
+        double localCutoff = BILLION;
+        if (upperCutoff < BILLION) localCutoff= upperCutoff;
+        if (cplex.getStatus().equals( IloCplex.Status.Feasible)){
+            double bestLocalSoln = cplex.getObjValue();
+            if (bestLocalSoln < localCutoff){
+                localCutoff = bestLocalSoln;
+            }
+        }
+        
+        if (  !condition1 && localCutoff  < BILLION){
             //|bestbound-upperCutoff|/(1e-10+|upperCutoff|) 
-            double dist_mip_gap = Math.abs( cplex.getBestObjValue() - upperCutoff);
+            double dist_mip_gap = Math.abs( cplex.getBestObjValue() - localCutoff);
             
             
             
             double denominator =  DOUBLE_ONE/ (BILLION) ;
             denominator = denominator /TEN;
-            denominator = denominator +  Math.abs(upperCutoff);
+            denominator = denominator +  Math.abs(localCutoff);
             dist_mip_gap = dist_mip_gap /denominator;
             logger.info ( " dist_mip_gap is " + dist_mip_gap );
             condition2 = dist_mip_gap < Constants.EPSILON;
