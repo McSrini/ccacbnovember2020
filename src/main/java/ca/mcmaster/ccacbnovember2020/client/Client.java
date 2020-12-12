@@ -93,18 +93,23 @@ public class Client {
                 
                 
                 if (  response.haltFlag) break;
+                
+                 //solve for SOLUTION_CYCLE_TIME
+                long  startTime = System.currentTimeMillis();   
                 long pruneTime_milliSeconds = processResponse(response) ;
                 
                 logger.info ("processresponse and prune took seconds" + pruneTime_milliSeconds/THOUSAND);
                 
-                //solve for SOLUTION_CYCLE_TIME
-                long  startTime = System.currentTimeMillis();                 
-                if (!mySubTree.isCompletelySolved) mySubTree.solve(response.globalIncumbent,pruneTime_milliSeconds );
+                if (!mySubTree.isCompletelySolved) {
+                    mySubTree.solve(response.globalIncumbent,pruneTime_milliSeconds );
+                }
                 long idleTime = THOUSAND * SOLUTION_CYCLE_TIME_SECONDS  - (System.currentTimeMillis() -startTime);
-                if ( idleTime > ZERO) {
+                if ( idleTime > ZERO ) {
                     logger.info ("Client "+ clientname + " will be idle for  sec " + idleTime/THOUSAND);
                     sleep(idleTime) ;
-                } 
+                } else {
+                    logger.info ("solve completed");
+                }
                             
                            
             }//end for iterations

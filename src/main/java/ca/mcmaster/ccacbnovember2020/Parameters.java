@@ -25,7 +25,7 @@ public class Parameters {
     public static boolean DISABLE_HEURISTICS= true;
     public static final int HUGE_WORKMEM =(64)*THOUSAND ;
     public static final boolean USE_HIGH_WORKMEM = true;
-    public static final int MIP_EMPHASIS_TO_USE = 3;
+    public static final int MIP_EMPHASIS_TO_USE = 2;
     //public static final long RANDOM_SEED = 1;
     
     public static   int NUM_WORKERS= 5;

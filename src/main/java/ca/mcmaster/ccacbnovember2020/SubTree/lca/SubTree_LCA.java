@@ -56,6 +56,7 @@ public class SubTree_LCA extends SubTree {
         if (solveTimeRemaining_seconds <= SIXTY){
             //set to 1 minute
             solveTimeRemaining_seconds = SIXTY;
+            
         }
          
         cplex.setParam( IloCplex.Param.Threads, MAX_CPLEX_THREADS);
@@ -79,6 +80,8 @@ public class SubTree_LCA extends SubTree {
         } else {
             root = getTreeStructure ( );
         }
+        
+       
            
     }
     
